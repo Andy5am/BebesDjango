@@ -30,23 +30,25 @@ class EventViewSet(viewsets.ModelViewSet):
                     'list': True,
                 },
                 'instance': {
-                    'retrieve': 'events.view',
-                    'destroy': False,
-                    'update': False,
-                    'partial_update': False,
+                    'retrieve': 'events.view_event',
+                    'destroy': True,
+                    'update': True,
+                    'partial_update': True,
                 }
             }
         ),
     )
-
     def perform_create(self, serializer):
         parent=name=serializer.validated_data['baby'].parent.username
         user = self.request.user
+        print(str(user))
+        print(str(parent))
         if (str(user)!=str(parent)):
             print ("No está autorizado")
+            return Response("No esta autorizado")
         elif(str(user)==str(parent)):
             event = serializer.save()
             print ("Se creó correctamente")
-            assign_perm('events.view', user, event)
+            assign_perm('events.view_event', user, event)
             return Response(serializer.data)       
         

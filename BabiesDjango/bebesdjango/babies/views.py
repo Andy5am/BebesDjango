@@ -17,25 +17,24 @@ from permissions.services import APIPermissionClassFactory
 # Create your views here.
 
 def is_parent(user, obj, request):
-    return user.username == obj.parent.username
+    return user.username == obj.parent.name
 
 class BabyViewSet(viewsets.ModelViewSet):
     queryset = Baby.objects.all()
     serializer_class = BabySerializer
-
     permission_classes = (
         APIPermissionClassFactory(
-            name='BabyPermission',
+            name='EventPermission',
             permission_configuration={
                 'base': {
                     'create': True,
                     'list': True,
                 },
                 'instance': {
-                    'retrieve': 'babies.view',
-                    'destroy': False,
+                    'retrieve': 'babies.view_baby',
+                    'destroy': True,
                     'update': True,
-                    'partial_update': False,
+                    'partial_update': True,
                     'events':is_parent
                 }
             }
@@ -43,15 +42,23 @@ class BabyViewSet(viewsets.ModelViewSet):
     )
 
     def perform_create(self, serializer):
-        baby = serializer.save()
-        parent = self.request.user
-        assign_perm('babies.view', parent, baby)
-        return Response(serializer.data)
+        parent=name=serializer.validated_data['parent'].username
+        user = self.request.user
+        print(str(user))
+        print(str(parent))
+        if(str(user)==str(parent)):
+            baby = serializer.save()
+            print("Se creó")
+            user = self.request.user
+            assign_perm('babies.view_baby', user, baby)
+            return Response(serializer.data)
+        elif(str(user)!=str(parent)):
+            print("No tiene autorización")
 
     @action(detail=True, methods=['get'])
     def events(self, request, pk=None):
         baby = self.get_object()
-        events_baby=[]
-        for event in Event.objects.filter(baby=baby):
-            events_baby.append(EventSerializer(event).data)
-        return Response(events_baby)
+        events = Event.objects.filter(baby = baby)
+        return Response({
+            'Events':(event.event_type for event in events)
+            })
